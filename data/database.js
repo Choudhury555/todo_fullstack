@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 export const connectDB = ()  => {
     //connecting DB
-    mongoose.connect("mongodb://0.0.0.0:27017/",{//this will come from "./data/config.env"
+    mongoose.connect(process.env.MONGO_URI,{//this will come from "./data/config.env"
         dbname:"todo"
     })
-    .then(()=>console.log("Database Conected"))
+    .then((c)=>console.log(`Database Conected with ${c.connection.host}`))
     .catch((e)=>console.log(e));
 }
