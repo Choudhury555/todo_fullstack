@@ -1,22 +1,16 @@
 import express from "express";
-import { deleteUser, getAllUsers, getUserDetails, newUser, specialFunc, updateUser } from "../controllers/user.js";
+import { getMyProfile, login, logout, register } from "../controllers/user.js";
+import { isAuthenticated } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-router.get("/all",getAllUsers);
+router.post("/register", register);
 
-router.post("/new",newUser);
+router.post("/login", login);
 
-router.get("/userid/special",specialFunc);
+router.get("/logout", logout);
 
-//dynamic routing
-// router.get("/userid/:id",getUserDetails);
-// router.put("/userid/:id",updateUser);
-// router.delete("/userid/:id",deleteUser);
-
-//either write above 3 lines or write this 1 line(both ae exaclty same)
-//just use this syntax when there is some common route
-router.route("/userid/:id").get(getUserDetails).put(updateUser).delete(deleteUser);
+router.get("/me", isAuthenticated, getMyProfile);//"isAuthenticated" is to check if user is logged in or not
 
 
 export default router;

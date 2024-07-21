@@ -1,82 +1,53 @@
 import { User } from "../models/user.js";
-
-export const getAllUsers = async (req,res)=>{
-
-    const tempUser = await User.find({});
-    console.log(req.query);//this query we are getting from params in POSTMAN
-
-    res.json({
-        success:true,
-        usersArr:tempUser
-    })
-}
+import bcrypt from "bcrypt"
+import { sendCookie } from "../utils/features.js";
+import ErrorHandler from "../middlewares/error.js";
 
 
-export const newUser = async (req,res)=>{
+export const register = async (req,res,next)=>{
     const {name,email,password} = req.body;
+    const isUseravailable = await User.findOne({email});
 
-    await User.create({name:name,email:email,password:password});
+    if(isUseravailable){
+        return next(new ErrorHandler("User aleady exist",404));//from here it will directly call our error handling middleware(which is present in last of "app.js" i.e. "errorMiddleware")
+    }
 
-    res.status(201).cookie("tempcookie","lol").json({
-        success: true,
-        message:"Registered Successfully"
-    })
+    const hashedPassword = await bcrypt.hash(password,10);
+
+    const userCreated = await User.create({name,email,password:hashedPassword});
+
+    sendCookie(userCreated,res,"Registered Successfully",201);//this function is inside "/utils/features.js"
 }
 
 
-export const specialFunc = (req,res)=>{//"/userid/special" route should be placed before exact same dynamic route "/userid/:id"
-    res.json({
-        success:true,
-        message:"Just for Testing purpose"
-    })
-}
+export const login = async (req,res,next)=>{
+    const {email,password} = req.body;
 
-export const getUserDetails = async (req,res)=>{//dynamic route should be at last(when there are more than one route with same name)
-    // console.log(req.query);
-    console.log(req.params);
+    const findUser = await User.findOne({email}).select("+password");//because in schema for "password" we wrote "select:false"(So,during access of User we need to manually select the "password")
 
-    // const {id} = req.query;//getting the id from query
+    if(!findUser){
+        return next(new ErrorHandler("Invalid Email/Password",400));//from here it will directly call our error handling middleware(which is present in last of "app.js" i.e. "errorMiddleware")
+    }
 
-    const {id} = req.params;//this is coming from /userid/anyid
+    const isMatch = await bcrypt.compare(password,findUser.password);
 
-    const user = await User.findById(id);
+    if(!isMatch){
+        return next(new ErrorHandler("Invalid Email/Password",400));//from here it will directly call our error handling middleware(which is present in last of "app.js" i.e. "errorMiddleware")
+    }
 
-    res.json({
-        success:true,
-        user:user
-    })
+    sendCookie(findUser,res,`Wlcome Back ${findUser.name}`,200);
 }
 
 
-export const updateUser = async (req,res)=>{//dynamic route should be at last(when there are more than one route with same name)
-    // console.log(req.query);
-    console.log(req.params);
 
-    // const {id} = req.query;//getting the id from query
-
-    const {id} = req.params;//this is coming from /userid/anyid
-
-    const user = await User.findById(id);
-
-    res.json({
+export const getMyProfile = (req,res)=>{
+    
+    res.status(200).json({
         success:true,
-        message:"Updated"
+        user:req.currUser//this is coming from the "isAuthenticated" fuction which is the previous function of "getMyProfile"
     })
 }
 
-
-export const deleteUser = async (req,res)=>{//dynamic route should be at last(when there are more than one route with same name)
-    // console.log(req.query);
-    console.log(req.params);
-
-    // const {id} = req.query;//getting the id from query
-
-    const {id} = req.params;//this is coming from /userid/anyid
-
-    const user = await User.findById(id);
-
-    res.json({
-        success:true,
-        message:"Deleted"
-    })
+export const logout = (req,res)=>{
+    res.status(200).cookie("token","",{expires:new Date(Date.now())}).json({success:true,message:"Logged out Successfully"});
 }
