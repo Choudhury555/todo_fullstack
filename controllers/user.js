@@ -49,5 +49,11 @@ export const getMyProfile = (req,res)=>{
 }
 
 export const logout = (req,res)=>{
-    res.status(200).cookie("token","",{expires:new Date(Date.now())}).json({success:true,message:"Logged out Successfully"});
+    res.status(200)
+    .cookie("token","",{
+        expires:new Date(Date.now()),
+        sameSite:"none",//if "sameSite" is "none" then the "secure" attribute must be set to "true"
+        secure:true,
+    })
+    .json({success:true,message:"Logged out Successfully"});
 }
