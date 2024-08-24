@@ -57,3 +57,34 @@ export const logout = (req,res)=>{
     })
     .json({success:true,message:"Logged out Successfully"});
 }
+
+
+export const forgotPassword = async (req,res,next)=>{
+    const {email,newpassword,confirmnewpassword} = req.body;
+    const isUseravailableForForgotPassword = await User.findOne({email}).select("+password");
+
+    console.log(isUseravailableForForgotPassword);
+    if(!isUseravailableForForgotPassword){
+        return next(new ErrorHandler("User does Not Exist",400));
+    }
+
+    if(newpassword != confirmnewpassword){
+        return next(new ErrorHandler("Both New Password and Confirm Password Must Match",400));
+    }
+
+    const isOldAndNewPasswordMatch = await bcrypt.compare(newpassword,isUseravailableForForgotPassword.password);
+
+    if(isOldAndNewPasswordMatch){
+        return next(new ErrorHandler("New Password and Old Password Must be Different",400));
+    }
+    
+    const hashedNewPassword = await bcrypt.hash(newpassword,10);
+    console.log(hashedNewPassword);
+    await User.updateOne({email},{$set:{password:hashedNewPassword}});
+
+    res.status(200).json({
+        success:true,
+        message:"Password Updated SuccessFully"
+    })
+    
+}
